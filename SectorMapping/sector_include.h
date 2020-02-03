@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <time.h>
-#define SHIFT (-3)
-#define BASIC (-2)
+#define SHIFT (-3) //섹터가 꽉 찼을 경우의 옮기는 타입
+#define BASIC (-2) //섹터가 꽉 안 찼을경우의 기본 타입
 #define FACTORY_RESET (-1) //SSD용 NULL값
 #define FALSE (0)
 #define TRUE (1)
@@ -22,11 +23,11 @@ typedef struct _table {
 	int psn; //물리 섹터 넘버
 } table;
 
-void init(const int inclination);
-void flash_read(int lsn);
-void flash_write(int lsn, char* string);
-void flash_erase(int lbn);
-void ftl_read(FILE* fp, int lsn);
-void ftl_write(FILE* fp, int lsn, char* string);
-void print_table(const int inclination);
+void init(const int, int* const megabyte);
+void flash_read(const int lsn, int* const megabyte);
+void flash_write(const int lsn, const char* string, int* const megabyte);
+void flash_erase(const int lbn, int* const megabyte);
+void ftl_read(FILE* fp, const int lsn, int* const megabyte);
+void ftl_write(FILE* fp, const int lsn, const char* string, int* const megabyte);
+void print_table(const int inclination, int* const megabyte);
 void help();

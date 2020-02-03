@@ -18,6 +18,7 @@ void help()
 int main(void)
 {
 	int psn;
+	int megabyte = 0;
 	char command[SIZE];
 	char string[MAX / SIZE + 1];
 	
@@ -31,31 +32,31 @@ int main(void)
 		if (strcmp(command, "init") == 0 || strcmp(command, "i") == 0)
 		{
 			scanf("%d", &psn);
-			init(psn);
+			init(psn, &megabyte);
 		}
 		else if (strcmp(command, "read") == 0 || strcmp(command, "r") == 0)
 		{
 			scanf("%d", &psn);
-			flash_read(psn);
+			flash_read(psn, &megabyte);
 		}
 		else if (strcmp(command, "write") == 0 || strcmp(command, "w") == 0)
 		{
 			scanf("%d ", &psn);
 			scanf("%s", string);
-			flash_write(psn, string);
+			flash_write(psn, string, &megabyte);
 		}
-		else if(strcmp(command, "erase") == 0 || strcmp(command, "e") == 0)
-		{
-			scanf("%d", &psn); 
-			flash_erase(psn);
-		}
-		else if ((strcmp(command, "print") == 0))
+		else if (strcmp(command, "erase") == 0 || strcmp(command, "e") == 0)
 		{
 			scanf("%d", &psn);
-			print_table(psn);
+			flash_erase(psn, &megabyte);
+		}
+		else if (strcmp(command, "print") == 0 || strcmp(command, "p") == 0)
+		{
+			scanf("%d", &psn);
+			print_table(psn, &megabyte);
 		}
 		else if ((strcmp(command, "help") == 0)) help();
-		else if ((strcmp(command, "exit") == 0)) break;
+		else if ((strcmp(command, "exit") == 0) || (strcmp(command, "quit") == 0)) break;
 		else printf("잘못된 명령입니다.\n");
 	}
 

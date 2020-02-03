@@ -31,5 +31,8 @@
     <Text Include="flash_memory.txt">
       <Filter>리소스 파일</Filter>
     </Text>
+    <Text Include="cmd.txt">
+      <Filter>리소스 파일</Filter>
+    </Text>
   </ItemGroup>
 </Project>

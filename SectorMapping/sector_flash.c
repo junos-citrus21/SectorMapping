@@ -1,13 +1,12 @@
 #include "sector_include.h"
 
-int megabyte;
 table* mapping;
 
-void init(const int inclination)
+void init(const int inclination, int* const megabyte)
 {
 	int i = 0;
 	flash data;
-	const FILE* fp = fopen("flash_memory.txt", "wb");
+	FILE* fp = fopen("flash_memory.txt", "wb");
 
 	if (fp == NULL)
 	{
@@ -22,13 +21,13 @@ void init(const int inclination)
 	}
 
 	//할당할 MB : 섹터 * 블록 * 사용자 의향
-	megabyte = SECTOR * BLOCK * inclination;
+	*megabyte = SECTOR * BLOCK * inclination;
 
 	//매핑 테이블 생성
-	mapping = (table*)malloc(sizeof(table)*megabyte);
+	mapping = (table*)malloc(*megabyte * sizeof(table));
 
 	//기본 매핑 테이블 부여, 물리 섹터 넘버는 아직 저장하지 않았으므로 FACTORY_RESET값 설정
-	for (i = 0; i <= megabyte - 1; i++)
+	for (i = 0; i <= *megabyte - 1; i++)
 	{
 		(mapping + i)->lsn = i;
 		(mapping + i)->psn = FACTORY_RESET;
@@ -40,12 +39,10 @@ void init(const int inclination)
 	//파일의 처음으로 간다.
 	fseek(fp, 0, SEEK_SET);
 
-	fwrite(&data, sizeof(data), megabyte, fp);
-
 	//데이터를 파일에 쓴다.
-	for (i = 0; i < megabyte; i++)
+	for (i = 0; i < *megabyte; i++)
 	{
-		//fwrite(&data, sizeof(data), 1, fp);
+		fwrite(&data, sizeof(data), 1, fp);
 	}
 
 	printf("%d megabyte(s) flash memory\n", inclination);
@@ -53,7 +50,7 @@ void init(const int inclination)
 	fclose(fp);
 }
 
-void flash_read(int lsn)
+void flash_read(const int lsn, int* const megabyte)
 {
 	FILE* fp = fopen("flash_memory.txt", "rb");
 
@@ -68,7 +65,7 @@ void flash_read(int lsn)
 		printf("명령 구문이 올바르지 않습니다.\n");
 		return;
 	}
-	else if (lsn > megabyte - 1)
+	else if (lsn > *megabyte - 1)
 	{
 		printf("%d 섹터가 없습니다.\n", lsn);
 		return;
@@ -79,12 +76,12 @@ void flash_read(int lsn)
 		return;
 	}
 
-	ftl_read(fp, lsn);
+	ftl_read(fp, lsn, megabyte);
 
 	fclose(fp);
 }
 
-void flash_write(int lsn, char* string)
+void flash_write(const int lsn, const char* string, int* const megabyte)
 {
 	clock_t start = clock();
 	clock_t end;
@@ -101,20 +98,20 @@ void flash_write(int lsn, char* string)
 		printf("명령 구문이 올바르지 않습니다.\n");
 		return;
 	}
-	else if (lsn > megabyte - 1)
+	else if (lsn > *megabyte - 1)
 	{
 		printf("%d 섹터가 없습니다.\n", lsn);
 		return;
 	}
 	
-	ftl_write(fp, lsn, string);
+	ftl_write(fp, lsn, string, megabyte);
 	end = clock();
 	printf("실행 시간 : %f초\n", (float)(end - start) / CLOCKS_PER_SEC);
 
 	fclose(fp);
 }
 
-void flash_erase(int lbn)
+void flash_erase(const int lbn, int* const megabyte)
 {
 	int i;
 	int count = 0;
@@ -126,7 +123,7 @@ void flash_erase(int lbn)
 		printf("명령 구문이 올바르지 않습니다.\n");
 		return;
 	}
-	else if (lbn > (megabyte - 1) / SECTOR)
+	else if (lbn > (*megabyte - 1) / SECTOR)
 	{
 		printf("%d 블록이 없습니다.\n", lbn);
 		return;
@@ -148,26 +145,7 @@ void flash_erase(int lbn)
 	fclose(fp);
 }
 
-void print_table(const int inclination)
-{
-	int i;
-
-	if (inclination <= -1 || inclination >= megabyte / SECTOR)
-	{
-		printf("값이 올바르지 않습니다.\n");
-		
-		return;
-	}
-
-	printf("| %10s %10s |\n", "lsn", "psn");
-
-	for (i = inclination * SECTOR; i <= (inclination + 1) * SECTOR - 1; i++)
-	{
-		printf("| %10d %10d |\n", mapping[i].lsn, mapping[i].psn);
-	}
-}
-
-void ftl_read(FILE* fp, int lsn)
+void ftl_read(FILE* fp, const int lsn, int* const megabyte)
 {
 	int i;
 	flash data;
@@ -197,7 +175,7 @@ void ftl_read(FILE* fp, int lsn)
 	printf("\n");
 }
 
-void ftl_write(FILE* fp, int lsn, char* string)
+void ftl_write(FILE* fp, const int lsn, const char* string, int* const megabyte)
 {
 	int i, j;
 	int type = BASIC;
@@ -211,6 +189,7 @@ void ftl_write(FILE* fp, int lsn, char* string)
 	fseek(fp, lsn * sizeof(data), SEEK_SET);
 	fread(data.byte, sizeof(data), 1, fp);
 
+	//변수 indicator는 논리 섹터 넘버가 현재 가리키는 위치 지시자이다.
 	for (indicator = lsn; (mapping + lsn)->psn <= limit * SECTOR; indicator++)
 	{
 		count++;
@@ -219,7 +198,7 @@ void ftl_write(FILE* fp, int lsn, char* string)
 		if (count == SECTOR)
 		{
 			//복사용 빈 블록을 처음부터 차례대로 검사한다.
-			for (i = 0; i <= megabyte - 1; i++)
+			for (i = 0; i <= *megabyte - 1; i++)
 			{
 				//같은 블록이면 건너 뜀
 				if (lsn / SECTOR == i)
@@ -257,7 +236,7 @@ void ftl_write(FILE* fp, int lsn, char* string)
 
 			count = 0;
 
-			//빈 블록으로 설정한 곳으로 복사한다.
+			//빈 블록을 설정한 곳으로 복사한다.
 			for (indicator = (limit - 1)*SECTOR; indicator <= limit * SECTOR - 1; indicator++)
 			{
 				count++;
@@ -321,7 +300,7 @@ void ftl_write(FILE* fp, int lsn, char* string)
 		(mapping + indicator)->psn = (mapping + next_block_lsn)->lsn;
 
 		//이전 블록은 지운다.
-		flash_erase(lsn / SECTOR);
+		flash_erase(lsn / SECTOR, megabyte);
 	}
 	else if (type == BASIC)
 	{
@@ -331,6 +310,27 @@ void ftl_write(FILE* fp, int lsn, char* string)
 
 	check++;
 	printf("done, 쓰기 : %d회\n", check);
+}
 
-	fclose(fp);
+void print_table(const int inclination, int* const megabyte)
+{
+	//이 함수는 기본 바이트 크기가 16바이트로 설정되어 있다.
+	assert(MAX / SIZE == 16);
+
+	int i;
+
+	if (inclination <= -1 || inclination >= *megabyte / SECTOR)
+	{
+		printf("값이 올바르지 않습니다.\n");
+
+		return;
+	}
+
+	printf("| %4d번 블록 매핑 테이블                        |\n", inclination);
+	printf("| %10s %10s || %10s %10s |\n", "lsn", "psn", "lsn", "psn");
+
+	for (i = inclination * SECTOR; i <= (inclination + 1) * SECTOR - 1 - 16; i++)
+	{
+		printf("| %10d %10d || %10d %10d |\n", mapping[i].lsn, mapping[i].psn, mapping[i + 16].lsn, mapping[i + 16].psn);
+	}
 }
